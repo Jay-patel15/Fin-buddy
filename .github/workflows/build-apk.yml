@@ -22,7 +22,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'
           
       - name: Install Dependencies & Capacitor
         run: |
@@ -58,3 +58,10 @@ jobs:
         with:
           name: FinBuddy-Android-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          
+      - name: Upload Android Studio Project
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FinBuddy-Android-Studio-Project
+          path: android/
