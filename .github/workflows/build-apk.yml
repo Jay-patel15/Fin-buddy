@@ -39,6 +39,7 @@ jobs:
       - name: Build Android APK
         run: |
           cd android
+          echo -e "\nconfigurations {\n    all*.exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'\n    all*.exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'\n}" >> app/build.gradle
           chmod +x ./gradlew
           ./gradlew assembleDebug > ../build-log.txt 2>&1
           
