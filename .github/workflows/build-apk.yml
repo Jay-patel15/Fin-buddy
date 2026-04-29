@@ -24,16 +24,18 @@ jobs:
           
       - name: Install Dependencies & Capacitor
         run: |
+          # Capacitor requires the web app to be in a subdirectory, not the root.
+          mkdir www
+          rsync -av --exclude='www' --exclude='.git' --exclude='.github' ./ www/
+          
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
           
-          # Initialize Capacitor. --web-dir . means it uses the root folder containing index.html
-          npx cap init FinBuddy com.finbuddy.app --web-dir .
+          # Initialize Capacitor using the www folder
+          npx cap init FinBuddy com.finbuddy.app --web-dir www
           
-          # Add Android platform
+          # Add Android platform and sync
           npx cap add android
-          
-          # Sync files to Android project
           npx cap sync
           
       - name: Build Android APK
