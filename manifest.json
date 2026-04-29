@@ -2,7 +2,7 @@
   "name": "FinBuddy",
   "short_name": "FinBuddy",
   "description": "Offline-first personal finance + expense splitting. All data stays on this device.",
-  "start_url": "/Fin-buddy/index.html",
+  "start_url": "https://jay-patel15.github.io/Fin-buddy/",
   "scope": "/Fin-buddy/",
   "display": "standalone",
   "orientation": "portrait",
