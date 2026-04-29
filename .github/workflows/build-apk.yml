@@ -38,11 +38,7 @@ jobs:
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug --stacktrace > ../build-log.txt 2>&1
-          
-      - name: Print Build Logs on Failure
-        if: failure()
-        run: cat build-log.txt
+          ./gradlew assembleDebug --stacktrace
           
       - name: Upload APK Artifact
         if: success()
