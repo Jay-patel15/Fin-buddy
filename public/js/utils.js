@@ -135,29 +135,6 @@ const Utils = (() => {
     return palette[h % palette.length];
   };
 
-  // -------- Contact Picker (Chrome on Android) --------
-  // Lets the user pick a contact instead of typing the phone manually.
-  // Falls back to null when unavailable so callers can hide the button.
-  // Available on Chrome 80+ on Android over HTTPS.
-  const supportsContactPicker = () =>
-    typeof navigator !== 'undefined' &&
-    'contacts' in navigator &&
-    typeof navigator.contacts.select === 'function';
-
-  const pickContact = async () => {
-    if (!supportsContactPicker()) {
-      throw new Error('contact picker not supported on this device');
-    }
-    // Returns [{ name: ['Jay'], tel: ['+91 98765 43210'] }, ...]
-    const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
-    if (!contacts || !contacts.length) return null;
-    const c = contacts[0];
-    return {
-      name:  (c.name && c.name[0]) || '',
-      phone: (c.tel  && c.tel[0])  || ''
-    };
-  };
-
   // -------- Phone normalization for wa.me --------
   // wa.me only opens the right chat when given an international number
   // (digits only, with country code). If the user types a 10-digit Indian
@@ -183,6 +160,6 @@ const Utils = (() => {
     startOfMonth, endOfMonth, debounce, uid,
     toCents, fromCents, round2, sumMoney,
     el, $, $$, toast, modal, confirm, colorFor, palette,
-    supportsContactPicker, pickContact, normalizePhone
+    normalizePhone
   };
 })();
