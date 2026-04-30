@@ -79,22 +79,38 @@ const ViewAccounts = (root) => {
         } } : null,
         { label: '[ SAVE ]', kind: 'primary', onClick: async () => {
           if (!draft.name.trim()) { toast('name required','err'); return false; }
+          
           await DB.put('accounts', draft);
-          if (!existing) {
-            // seed opening balance via a synthetic income tx
-            if (draft.balance) {
-              await DB.put('transactions', {
-                id: Utils.uid(),
-                type: 'income',
-                amount: Math.abs(draft.balance),
-                accountId: draft.id,
-                categoryId: (s.categories.find(c => c.type === 'income') || {}).id || null,
-                notes: 'opening balance',
-                ts: Date.now()
-              });
+          
+          const trueTxSum = await DB.recalcAccountBalance(draft.id);
+          const newBal = parseFloat(draft.balance) || 0;
+          const diff = newBal - trueTxSum;
+
+          if (diff !== 0) {
+            const tx = {
+              id: Utils.uid(),
+              type: diff > 0 ? 'income' : 'expense',
+              amount: Math.abs(diff),
+              accountId: draft.id,
+              categoryId: (s.categories.find(c => c.type === (diff > 0 ? 'income' : 'expense')) || {}).id || null,
+              notes: existing ? 'balance adjustment' : 'opening balance',
+              ts: Date.now(),
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            };
+            await DB.put('transactions', tx);
+            if (window.Sheets && window.Sheets.isLive && window.Sheets.isLive()) {
+              window.Sheets.upsert('transactions', tx);
             }
           }
+          
           await DB.recalcAccountBalance(draft.id);
+          
+          if (window.Sheets && window.Sheets.isLive && window.Sheets.isLive()) {
+            const finalAcc = await DB.get('accounts', draft.id);
+            if (finalAcc) window.Sheets.upsert('accounts', { ...finalAcc, updatedAt: Date.now() });
+          }
+
           await State.refreshAll();
           toast('saved');
         } }
