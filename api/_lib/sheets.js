@@ -31,8 +31,16 @@ export async function call(action, table, payload) {
     throw err;
   }
   if (!r.ok || data.ok === false) {
-    const err = new Error(data?.error || ('upstream http ' + r.status));
-    err.status = r.ok ? 400 : r.status;
+    const upstreamMsg = data?.error || ('upstream http ' + r.status);
+    // The Apps Script returns this exact string when SHARED_SECRET doesn't
+    // match. The user almost always hits this on first deploy because they
+    // either forgot to redeploy the script after editing the constant, or
+    // the value in Vercel env vars doesn't match the script's value.
+    const friendly = (upstreamMsg === 'unauthorized')
+      ? 'apps script rejected the secret — check that APPS_SCRIPT_SECRET in Vercel matches SHARED_SECRET in your deployed Apps Script (and redeploy the script after any edit)'
+      : upstreamMsg;
+    const err = new Error(friendly);
+    err.status = r.ok ? 502 : r.status;
     err.upstream = data;
     throw err;
   }

@@ -58,12 +58,16 @@ const ViewSettings = (root) => {
     stateEl.className = onTog.checked ? 'v green' : 'v amber';
   };
 
+  const queued     = Sheets.queuedCount();
+  const queuedEl   = el('span', { class: queued ? 'v amber' : 'v' }, String(queued));
+
   root.appendChild(el('div', { class: 'view-title', style:'margin-top:14px;' }, '// CLOUD SYNC · GOOGLE SHEETS'));
   root.appendChild(el('div', { class: 'card' }, [
     el('div', { class:'kv' }, [el('span', { class:'k' }, 'STATUS'),    stateEl]),
     el('div', { class:'kv' }, [el('span', { class:'k' }, 'LAST SYNC'), lastEl]),
+    el('div', { class:'kv' }, [el('span', { class:'k' }, 'QUEUED'),    queuedEl]),
     el('div', { class:'muted', style:'font-size:11px;letter-spacing:1px;margin-bottom:6px;' },
-      'CRUD goes through /api/data on this Vercel deployment. The Apps Script URL + secret live in Vercel env vars and never reach the browser. Rows are scoped to your account by the server.'),
+      'CRUD goes through /api/data on this Vercel deployment. The Apps Script URL + secret live in Vercel env vars and never reach the browser. Rows are scoped to your account by the server. Failed pushes queue locally and survive reload — hit FLUSH QUEUE or PUSH ALL once the sync is healthy.'),
     el('label', { style:'display:flex;align-items:center;cursor:pointer;margin-top:8px;font-size:12px;' }, [onTog,   'CLOUD SYNC ENABLED']),
     el('label', { style:'display:flex;align-items:center;cursor:pointer;margin-top:4px;font-size:12px;' }, [autoTog, 'AUTO-PUSH ON EVERY CHANGE']),
     el('div', { style:'display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;' }, [
@@ -84,7 +88,16 @@ const ViewSettings = (root) => {
         if (!await Utils.confirm('Pull from sheet and merge into local DB?')) return;
         try { await Sheets.pullAll(); lastEl.textContent = Utils.fmtDateTime(Sheets.get().lastSync); toast('pulled'); }
         catch (e) { toast('pull failed: ' + e.message, 'err'); }
-      } } }, 'PULL ← SHEET')
+      } } }, 'PULL ← SHEET'),
+      el('button', { class: queued ? 'mini red' : 'mini', on: { click: async () => {
+        if (!Sheets.isLive()) { toast('enable cloud sync first','err'); return; }
+        try {
+          const r = await Sheets.flushPending();
+          queuedEl.textContent = String(Sheets.queuedCount());
+          queuedEl.className = Sheets.queuedCount() ? 'v amber' : 'v';
+          toast(`drained ${r.drained} · ${r.remaining} left`);
+        } catch (e) { toast('flush failed: ' + e.message, 'err'); }
+      } } }, `FLUSH QUEUE${queued ? ' (' + queued + ')' : ''}`)
     ])
   ]));
 

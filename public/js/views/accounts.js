@@ -4,7 +4,7 @@
    ============================================================ */
 
 const ViewAccounts = (root) => {
-  const { el, $, $$, toast } = Utils;
+  const { el, $$, toast } = Utils;
   const s = State.get();
 
   root.appendChild(el('div', { class: 'view-title' }, '// ACCOUNTS'));
@@ -86,8 +86,9 @@ const ViewAccounts = (root) => {
           const newBal = parseFloat(draft.balance) || 0;
           const diff = newBal - trueTxSum;
 
+          let openingTx = null;
           if (diff !== 0) {
-            const tx = {
+            openingTx = {
               id: Utils.uid(),
               type: diff > 0 ? 'income' : 'expense',
               amount: Math.abs(diff),
@@ -98,21 +99,29 @@ const ViewAccounts = (root) => {
               createdAt: Date.now(),
               updatedAt: Date.now()
             };
-            await DB.put('transactions', tx);
-            if (window.Sheets && window.Sheets.isLive && window.Sheets.isLive()) {
-              window.Sheets.upsert('transactions', tx);
-            }
-          }
-          
-          await DB.recalcAccountBalance(draft.id);
-          
-          if (window.Sheets && window.Sheets.isLive && window.Sheets.isLive()) {
-            const finalAcc = await DB.get('accounts', draft.id);
-            if (finalAcc) window.Sheets.upsert('accounts', { ...finalAcc, updatedAt: Date.now() });
+            await DB.put('transactions', openingTx);
           }
 
-          await State.refreshAll();
-          toast('saved');
+          await DB.recalcAccountBalance(draft.id);
+
+          // Cloud-push everything we just wrote, awaiting so failures surface
+          // as a toast (and queue persistently for later flush).
+          if (Sheets.isLive()) {
+            const accUp = await Sheets.upsert('accounts', { ...(await DB.get('accounts', draft.id)), updatedAt: Date.now() });
+            const txUp  = openingTx ? await Sheets.upsert('transactions', openingTx) : { ok: true };
+
+            await State.refreshAll();
+            if (accUp.ok && txUp.ok) {
+              toast('saved + synced');
+            } else if (accUp.queued || txUp.queued) {
+              toast('saved · cloud queued (' + Sheets.queuedCount() + ')', 'err');
+            } else {
+              toast('saved');
+            }
+          } else {
+            await State.refreshAll();
+            toast('saved');
+          }
         } }
       ].filter(Boolean)
     });

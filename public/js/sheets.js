@@ -18,15 +18,17 @@
    ============================================================ */
 
 const Sheets = (() => {
-  const ENDPOINT = '/api/data';
-  const CFG_KEY  = 'cloudSync';
-  const empty    = () => ({ enabled: true, autoSync: true, lastSync: 0 });
+  const ENDPOINT    = '/api/data';
+  const CFG_KEY     = 'cloudSync';
+  const QUEUE_KEY   = 'cloudSyncQueue'; // persisted pending queue
+  const empty       = () => ({ enabled: true, autoSync: true, lastSync: 0 });
 
   let cfg = empty();
-  let pending = []; // queue of mutations while offline / disabled
+  let pending = []; // mirrors DB.meta[QUEUE_KEY] — survives reloads
 
   const load = async () => {
-    cfg = { ...empty(), ...((await DB.getMeta(CFG_KEY)) || {}) };
+    cfg     = { ...empty(), ...((await DB.getMeta(CFG_KEY)) || {}) };
+    pending = (await DB.getMeta(QUEUE_KEY)) || [];
     return cfg;
   };
   const save = async (patch) => {
@@ -36,6 +38,10 @@ const Sheets = (() => {
   };
   const get    = () => cfg;
   const isLive = () => !!cfg.enabled;
+
+  // Persist the queue any time we mutate it so failures survive a reload.
+  const _saveQueue = () => DB.setMeta(QUEUE_KEY, pending);
+  const queuedCount = () => pending.length;
 
   const _post = async (action, table, payload) => {
     const res = await fetch(ENDPOINT, {
@@ -53,15 +59,31 @@ const Sheets = (() => {
   const ping = () => _post('ping');
 
   // ---------- single-record helpers (called on every mutation) ----------
+  // Returns { ok: true } on success, { ok: false, queued: true, error } on
+  // failure (job is queued and persisted). Callers can `await` for status.
   const upsert = async (table, row) => {
-    if (!isLive()) return;
-    try { await _post('upsert', table, [_normalize(row)]); }
-    catch (e) { console.warn('cloud upsert queued:', e.message); pending.push({ kind: 'upsert', table, row }); }
+    if (!isLive()) return { ok: false, queued: false, error: 'sync disabled' };
+    try {
+      await _post('upsert', table, [_normalize(row)]);
+      return { ok: true };
+    } catch (e) {
+      console.warn('cloud upsert queued:', e.message);
+      pending.push({ kind: 'upsert', table, row, ts: Date.now() });
+      await _saveQueue();
+      return { ok: false, queued: true, error: e.message };
+    }
   };
   const remove = async (table, id) => {
-    if (!isLive()) return;
-    try { await _post('delete', table, [id]); }
-    catch (e) { console.warn('cloud delete queued:', e.message); pending.push({ kind: 'delete', table, id }); }
+    if (!isLive()) return { ok: false, queued: false, error: 'sync disabled' };
+    try {
+      await _post('delete', table, [id]);
+      return { ok: true };
+    } catch (e) {
+      console.warn('cloud delete queued:', e.message);
+      pending.push({ kind: 'delete', table, id, ts: Date.now() });
+      await _saveQueue();
+      return { ok: false, queued: true, error: e.message };
+    }
   };
 
   // ---------- bulk push / pull (called from Settings) ----------
@@ -94,15 +116,19 @@ const Sheets = (() => {
   };
 
   const flushPending = async () => {
-    if (!isLive() || !pending.length) return;
+    if (!isLive() || !pending.length) return { ok: true, drained: 0, remaining: 0 };
     const queue = pending.slice();
     pending = [];
+    let drained = 0;
     for (const job of queue) {
       try {
         if (job.kind === 'upsert') await _post('upsert', job.table, [_normalize(job.row)]);
         if (job.kind === 'delete') await _post('delete', job.table, [job.id]);
+        drained++;
       } catch (_) { pending.push(job); }
     }
+    await _saveQueue();
+    return { ok: pending.length === 0, drained, remaining: pending.length };
   };
 
   // ---------- helpers ----------
@@ -131,5 +157,5 @@ const Sheets = (() => {
     return out;
   }
 
-  return { load, save, get, isLive, ping, upsert, remove, pushAll, pullAll, flushPending };
+  return { load, save, get, isLive, ping, upsert, remove, pushAll, pullAll, flushPending, queuedCount };
 })();
