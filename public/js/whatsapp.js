@@ -18,13 +18,16 @@
 
 const Whatsapp = (() => {
   const fmt = (n) => Utils.fmtMoney(n);
-  const cleanPhone = (p) => (p || '').replace(/[^\d+]/g, '');
+  // Use the shared normalizer so a 10-digit Indian number gets a 91 prefix.
+  // Without the country code, wa.me opens to the contact-picker screen
+  // instead of the specific chat — that's the "have to select contact" bug.
+  const cleanPhone = (p) => Utils.normalizePhone(p);
 
   // ---------- the only sender ----------
   const send = (phone, text) => {
     const ph  = cleanPhone(phone);
     const url = ph
-      ? `https://wa.me/${encodeURIComponent(ph)}?text=${encodeURIComponent(text)}`
+      ? `https://wa.me/${ph}?text=${encodeURIComponent(text)}`
       : `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank', 'noopener');
   };

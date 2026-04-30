@@ -135,10 +135,54 @@ const Utils = (() => {
     return palette[h % palette.length];
   };
 
+  // -------- Contact Picker (Chrome on Android) --------
+  // Lets the user pick a contact instead of typing the phone manually.
+  // Falls back to null when unavailable so callers can hide the button.
+  // Available on Chrome 80+ on Android over HTTPS.
+  const supportsContactPicker = () =>
+    typeof navigator !== 'undefined' &&
+    'contacts' in navigator &&
+    typeof navigator.contacts.select === 'function';
+
+  const pickContact = async () => {
+    if (!supportsContactPicker()) {
+      throw new Error('contact picker not supported on this device');
+    }
+    // Returns [{ name: ['Jay'], tel: ['+91 98765 43210'] }, ...]
+    const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+    if (!contacts || !contacts.length) return null;
+    const c = contacts[0];
+    return {
+      name:  (c.name && c.name[0]) || '',
+      phone: (c.tel  && c.tel[0])  || ''
+    };
+  };
+
+  // -------- Phone normalization for wa.me --------
+  // wa.me only opens the right chat when given an international number
+  // (digits only, with country code). If the user types a 10-digit Indian
+  // number we silently prepend 91 so they don't have to manually pick the
+  // contact in WhatsApp every time. Override default by passing cc='44' etc.
+  const normalizePhone = (raw, cc = '91') => {
+    if (!raw) return '';
+    let s = String(raw).trim();
+    const hadPlus = s.startsWith('+');
+    s = s.replace(/\D/g, ''); // digits only
+    if (!s) return '';
+    if (hadPlus) return s; // user supplied a full international number
+    // Indian: 10-digit local → prepend country code
+    if (s.length === 10) return cc + s;
+    // 11 digits starting with 0 → strip the leading 0, prepend country code
+    if (s.length === 11 && s.startsWith('0')) return cc + s.slice(1);
+    // Already 12+ digits — assume it includes the country code
+    return s;
+  };
+
   return {
     fmtMoney, fmtDate, fmtTime, fmtDateTime, monthKey,
     startOfMonth, endOfMonth, debounce, uid,
     toCents, fromCents, round2, sumMoney,
-    el, $, $$, toast, modal, confirm, colorFor, palette
+    el, $, $$, toast, modal, confirm, colorFor, palette,
+    supportsContactPicker, pickContact, normalizePhone
   };
 })();

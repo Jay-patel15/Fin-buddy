@@ -4,10 +4,12 @@
    ============================================================ */
 
 const Share = (() => {
-  const cleanPhone = (p) => (p || '').replace(/[^\d+]/g, '');
+  // Country-code-aware: 10-digit local number → prepended with 91 so
+  // wa.me opens the right chat directly instead of the contact-picker.
+  const cleanPhone = (p) => Utils.normalizePhone(p);
 
   // Open native share sheet if available, otherwise fallback to WhatsApp deep link.
-  const share = async ({ phone, text, title = 'RETRO.CASH' }) => {
+  const share = async ({ phone, text, title = 'FINBUDDY' }) => {
     const ph = cleanPhone(phone);
     if (navigator.share) {
       try {
@@ -24,7 +26,7 @@ const Share = (() => {
   const whatsappLink = (phone, text) => {
     const ph = cleanPhone(phone);
     const url = ph
-      ? `https://wa.me/${encodeURIComponent(ph)}?text=${encodeURIComponent(text)}`
+      ? `https://wa.me/${ph}?text=${encodeURIComponent(text)}`
       : `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank', 'noopener');
     return 'whatsapp';

@@ -189,11 +189,30 @@ const ViewSplit = (root) => {
         ]);
         partsBox.appendChild(row);
       });
-      const add = el('button', { class: 'mini', style:'margin-top:4px;', on: { click: () => {
+      const actionsRow = el('div', { style: 'display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;' });
+      actionsRow.appendChild(el('button', { class: 'mini', on: { click: () => {
         draft.participants.push({ name: '', phone: '', value: 0 });
         renderParts(); updatePreview();
-      } } }, '+ ADD PERSON');
-      partsBox.appendChild(add);
+      } } }, '+ ADD PERSON'));
+
+      // Contact Picker — Chrome on Android only. Hidden on iOS / desktop /
+      // anywhere the API is missing so it doesn't show a dead button.
+      if (Utils.supportsContactPicker()) {
+        actionsRow.appendChild(el('button', { class: 'mini blue', on: { click: async () => {
+          try {
+            const c = await Utils.pickContact();
+            if (!c) return;
+            draft.participants.push({
+              name: c.name || '',
+              phone: Utils.normalizePhone(c.phone),
+              value: 0
+            });
+            renderParts(); updatePreview();
+          } catch (e) { toast('contacts: ' + e.message, 'err'); }
+        } } }, '📇 PICK CONTACT'));
+      }
+
+      partsBox.appendChild(actionsRow);
     };
     renderParts();
 
