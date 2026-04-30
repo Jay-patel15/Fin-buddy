@@ -596,5 +596,8 @@ const ViewSplit = (root) => {
     body.appendChild(card);
   };
 
-  setMode('list');
+  // If we just landed here from "ALSO SPLIT THIS EXPENSE", jump straight to
+  // the NEW form so the seeded title/total/account auto-fill is visible.
+  const initialMode = sessionStorage.getItem('split_seed') ? 'new' : 'list';
+  setMode(initialMode);
 };
