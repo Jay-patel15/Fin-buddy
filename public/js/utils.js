@@ -98,7 +98,14 @@ const Utils = (() => {
       actions.forEach((a) => {
         const b = el('button', {
           class: `btn ${a.kind === 'primary' ? 'btn-primary' : a.kind === 'red' ? 'btn-red' : 'btn-ghost'}`,
-          on: { click: () => { const r = a.onClick && a.onClick(); if (r !== false) close(); } }
+          on: { click: async () => {
+            // Await so async onClicks (e.g. the ones that open a nested
+            // confirm modal) can finish before we close. Without the await,
+            // close() runs immediately and wipes any nested modal the
+            // onClick just opened, breaking every DELETE flow.
+            const r = a.onClick ? await a.onClick() : undefined;
+            if (r !== false) close();
+          } }
         }, a.label);
         row.appendChild(b);
       });
