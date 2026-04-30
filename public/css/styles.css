@@ -1025,6 +1025,42 @@ input[type="checkbox"] {
   #lock-screen.screen, .screen.lock { padding-left: 0; }
 }
 
+/* ============================================================ MOBILE DRAWER
+   On <1024px the same .sidebar element doubles as a slide-in drawer.
+   Toggled by #menu-btn in the topbar; closed by tapping a nav item or
+   the backdrop. Hidden entirely (display:none) until JS toggles .open.
+*/
+.drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 55;
+}
+.drawer-backdrop.open { display: block; }
+
+#menu-btn { display: none; } /* shown on <1024px below */
+
+@media (max-width: 1023.98px) {
+  #menu-btn { display: inline-flex; }
+
+  .sidebar {
+    display: flex;                /* always rendered, but slid off-screen */
+    transform: translateX(-110%); /* off-screen by default */
+    transition: transform .22s ease-out;
+    width: 280px;
+    z-index: 60;                  /* above .drawer-backdrop, above tabbar */
+    box-shadow: 6px 6px 0 var(--pink);
+    /* drawer is always full-height on mobile too */
+    top: 0; bottom: 0; left: 0;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  /* Make scroll lock cleaner when drawer is open */
+  body.drawer-open { overflow: hidden; }
+}
+
 /* ============================================================ RESPONSIVE
    POLISH — narrow phones, ultra-wide, tap targets, edge-to-edge fit.
    Everything below assumes the base mobile layout works at 360px+.

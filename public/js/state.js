@@ -4,7 +4,7 @@
 
 const State = (() => {
   const data = {
-    user: null,             // { id, username, salt, pinHash, hasBiometric, autoLockMs }
+    user: null,             // { id, username } — server-issued, no crypto state on the client
     accounts: [],
     categories: [],
     transactions: [],

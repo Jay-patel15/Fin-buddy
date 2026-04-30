@@ -61,6 +61,26 @@
   // 7) Topbar wiring
   Utils.$('#settings-btn').addEventListener('click', () => Router.go('settings'));
 
+  // Mobile drawer (hamburger) — toggles the same sidebar used on desktop.
+  const sidebar  = Utils.$('.sidebar');
+  const backdrop = Utils.$('#drawer-backdrop');
+  const closeDrawer = () => {
+    sidebar?.classList.remove('open');
+    backdrop?.classList.remove('open');
+    document.body.classList.remove('drawer-open');
+  };
+  const openDrawer = () => {
+    sidebar?.classList.add('open');
+    backdrop?.classList.add('open');
+    document.body.classList.add('drawer-open');
+  };
+  Utils.$('#menu-btn')?.addEventListener('click', openDrawer);
+  backdrop?.addEventListener('click', closeDrawer);
+  // Closing on every nav-item tap is the natural mobile behavior.
+  Utils.$$('.side-nav .item').forEach(b => b.addEventListener('click', closeDrawer));
+  // ESC also closes the drawer (helpful on tablets with keyboards).
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
   Utils.$('#logout-btn').addEventListener('click', async () => {
     if (!await Utils.confirm('Sign out?')) return;
     try { await AuthClient.logout(); } catch (_) {}
