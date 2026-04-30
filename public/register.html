@@ -7,6 +7,31 @@
   <title>FINBUDDY · REGISTER</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 48px; }
+    .pw-eye {
+      position: absolute;
+      top: 50%;
+      right: 6px;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--yellow);
+      border: 3px solid var(--black);
+      box-shadow: 2px 2px 0 #000;
+      font-family: var(--display);
+      font-weight: 900;
+      font-size: 12px;
+      letter-spacing: 1px;
+      color: var(--black);
+      cursor: pointer;
+    }
+    .pw-eye:active { transform: translateY(-50%) translate(1px,1px); box-shadow: 1px 1px 0 #000; }
+  </style>
 </head>
 <body>
   <section class="screen lock">
@@ -19,9 +44,15 @@
       <form id="reg-form" autocomplete="on" novalidate>
         <h2>&gt; REGISTER</h2>
         <p class="muted">Each account has its own private ledger.</p>
-        <input id="email"    type="email"    name="email"    placeholder="EMAIL"            autocomplete="email"        required />
-        <input id="password" type="password" name="password" placeholder="PASSWORD (8+)"    autocomplete="new-password" required minlength="8" />
-        <input id="confirm"  type="password" name="confirm"  placeholder="CONFIRM PASSWORD" autocomplete="new-password" required minlength="8" />
+        <input id="username" type="text" name="username" placeholder="USERNAME (3-30 CHARS)" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required minlength="3" maxlength="30" pattern="[a-zA-Z0-9_-]{3,30}" />
+        <div class="pw-wrap">
+          <input id="password" type="password" name="password" placeholder="PASSWORD (4+)" autocomplete="new-password" required minlength="4" />
+          <button type="button" class="pw-eye" data-target="password" aria-label="Show password">SHOW</button>
+        </div>
+        <div class="pw-wrap">
+          <input id="confirm"  type="password" name="confirm"  placeholder="CONFIRM PASSWORD" autocomplete="new-password" required minlength="4" />
+          <button type="button" class="pw-eye" data-target="confirm" aria-label="Show password">SHOW</button>
+        </div>
         <button id="submit" class="btn btn-primary" type="submit">[ CREATE ACCOUNT ]</button>
         <div id="error" class="error"></div>
       </form>
@@ -43,13 +74,32 @@
     const form    = document.getElementById('reg-form');
     const errEl   = document.getElementById('error');
     const submit  = document.getElementById('submit');
-    const emailIn = document.getElementById('email');
+    const userIn  = document.getElementById('username');
     const passIn  = document.getElementById('password');
     const confIn  = document.getElementById('confirm');
+
+    document.querySelectorAll('.pw-eye').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tgt = document.getElementById(btn.dataset.target);
+        const showing = tgt.type === 'text';
+        tgt.type = showing ? 'password' : 'text';
+        btn.textContent = showing ? 'SHOW' : 'HIDE';
+        btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+      });
+    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errEl.textContent = '';
+      const username = userIn.value.trim().toLowerCase();
+      if (!/^[a-z0-9_-]{3,30}$/.test(username)) {
+        errEl.textContent = '> username must be 3-30 chars, a-z, 0-9, - or _';
+        return;
+      }
+      if (passIn.value.length < 4) {
+        errEl.textContent = '> password must be at least 4 characters';
+        return;
+      }
       if (passIn.value !== confIn.value) {
         errEl.textContent = '> passwords do not match';
         return;
@@ -61,22 +111,19 @@
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailIn.value.trim(), password: passIn.value })
+          body: JSON.stringify({ username, password: passIn.value })
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || data.ok === false) throw new Error(data.error || 'register failed');
 
-        // Auto-login after successful register so the user lands straight in the app.
+        // Auto-login so the user lands straight in the app.
         const r2 = await fetch('/api/auth/login', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailIn.value.trim(), password: passIn.value })
+          body: JSON.stringify({ username, password: passIn.value })
         });
-        if (!r2.ok) {
-          location.href = 'login.html';
-          return;
-        }
+        if (!r2.ok) { location.href = 'login.html'; return; }
         location.href = '/';
       } catch (err) {
         errEl.textContent = '> ' + err.message;

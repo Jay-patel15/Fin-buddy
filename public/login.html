@@ -7,6 +7,31 @@
   <title>FINBUDDY · LOGIN</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 48px; }
+    .pw-eye {
+      position: absolute;
+      top: 50%;
+      right: 6px;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--yellow);
+      border: 3px solid var(--black);
+      box-shadow: 2px 2px 0 #000;
+      font-family: var(--display);
+      font-weight: 900;
+      font-size: 12px;
+      letter-spacing: 1px;
+      color: var(--black);
+      cursor: pointer;
+    }
+    .pw-eye:active { transform: translateY(-50%) translate(1px,1px); box-shadow: 1px 1px 0 #000; }
+  </style>
 </head>
 <body>
   <section class="screen lock">
@@ -18,8 +43,11 @@
 
       <form id="login-form" autocomplete="on" novalidate>
         <h2>&gt; LOGIN</h2>
-        <input id="email"    type="email"    name="email"    placeholder="EMAIL"    autocomplete="email"            required />
-        <input id="password" type="password" name="password" placeholder="PASSWORD" autocomplete="current-password" required minlength="8" />
+        <input id="username" type="text" name="username" placeholder="USERNAME" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required />
+        <div class="pw-wrap">
+          <input id="password" type="password" name="password" placeholder="PASSWORD" autocomplete="current-password" required minlength="4" />
+          <button type="button" class="pw-eye" id="pw-toggle" aria-label="Show password">SHOW</button>
+        </div>
         <button id="submit" class="btn btn-primary" type="submit">[ SIGN IN ]</button>
         <div id="error" class="error"></div>
       </form>
@@ -33,17 +61,24 @@
 
   <script>
   (async () => {
-    // If we already have a session, skip the form.
     try {
       const r = await fetch('/api/auth/me', { credentials: 'include' });
       if (r.ok) { location.href = '/'; return; }
-    } catch (_) { /* offline or no backend; show form */ }
+    } catch (_) { /* show form */ }
 
     const form    = document.getElementById('login-form');
     const errEl   = document.getElementById('error');
     const submit  = document.getElementById('submit');
-    const emailIn = document.getElementById('email');
+    const userIn  = document.getElementById('username');
     const passIn  = document.getElementById('password');
+    const eyeBtn  = document.getElementById('pw-toggle');
+
+    eyeBtn.addEventListener('click', () => {
+      const showing = passIn.type === 'text';
+      passIn.type = showing ? 'password' : 'text';
+      eyeBtn.textContent = showing ? 'SHOW' : 'HIDE';
+      eyeBtn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -55,7 +90,7 @@
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailIn.value.trim(), password: passIn.value })
+          body: JSON.stringify({ username: userIn.value.trim().toLowerCase(), password: passIn.value })
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || data.ok === false) throw new Error(data.error || 'login failed');

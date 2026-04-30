@@ -79,19 +79,6 @@
           "type": "image/svg+xml"
         }
       ]
-    },
-    {
-      "name": "Quick Widget",
-      "short_name": "Widget",
-      "description": "Compact balance + quick add view.",
-      "url": "./widget.html",
-      "icons": [
-        {
-          "src": "icons/icon-192.svg",
-          "sizes": "192x192",
-          "type": "image/svg+xml"
-        }
-      ]
     }
   ]
 }

@@ -20,7 +20,7 @@
 const Sheets = (() => {
   const ENDPOINT = '/api/data';
   const CFG_KEY  = 'cloudSync';
-  const empty    = () => ({ enabled: false, autoSync: true, lastSync: 0 });
+  const empty    = () => ({ enabled: true, autoSync: true, lastSync: 0 });
 
   let cfg = empty();
   let pending = []; // queue of mutations while offline / disabled

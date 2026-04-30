@@ -14,7 +14,7 @@
   // 2) Reveal the app shell (was hidden in index.html).
   Utils.$('#app-screen').classList.remove('hidden');
   const userBadge = Utils.$('#sidebar-user');
-  if (userBadge) userBadge.textContent = user.email;
+  if (userBadge) userBadge.textContent = user.username;
 
   // 3) Per-user local-DB scoping. Switching accounts on the same
   //    browser must not leak data; wipe the cache when the user changes.
@@ -26,7 +26,7 @@
     }
   }
   await DB.setMeta('currentUserId',    user.id);
-  await DB.setMeta('currentUserEmail', user.email);
+  await DB.setMeta('currentUsername', user.username);
 
   // 4) Seed defaults (cash/bank/UPI/card + categories) on first login.
   await DB.seedDefaults();
@@ -91,19 +91,13 @@
     });
   });
 
-  // 8) Service worker (offline shell)
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    try { await navigator.serviceWorker.register('sw.js'); }
-    catch (e) { console.warn('SW registration failed', e); }
-  }
-
-  // 9) Notification permission once user is in the app
+  // 8) Notification permission once user is in the app
   if (Notifications.supports() && Notification.permission === 'default') {
     setTimeout(() => {
       if (Notification.permission === 'default') Notifications.requestPermission();
     }, 4000);
   }
 
-  // 10) Flush queued cloud sync jobs whenever we come back online
+  // 9) Flush queued cloud sync jobs whenever we come back online
   window.addEventListener('online', () => Sheets.flushPending());
 })();

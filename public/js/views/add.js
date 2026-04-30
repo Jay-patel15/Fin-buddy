@@ -7,7 +7,11 @@ const ViewAdd = (root) => {
   const { el, $, $$, toast } = Utils;
   const s = State.get();
 
-  const draft = {
+  const editSeedStr = sessionStorage.getItem('edit_tx');
+  let isEdit = false;
+  let parsed = {};
+  
+  let draft = {
     type: 'expense',
     amount: 0,
     accountId: s.accounts[0]?.id || null,
@@ -19,7 +23,16 @@ const ViewAdd = (root) => {
     recurringRule: null
   };
 
-  root.appendChild(el('div', { class: 'view-title' }, '// NEW ENTRY'));
+  if (editSeedStr) {
+    try {
+      parsed = JSON.parse(editSeedStr);
+      draft = { ...draft, ...parsed };
+      isEdit = true;
+      sessionStorage.removeItem('edit_tx');
+    } catch (_) {}
+  }
+
+  root.appendChild(el('div', { class: 'view-title' }, isEdit ? '// EDIT ENTRY' : '// NEW ENTRY'));
 
   // type
   const typeSeg = el('div', { class: 'seg' });
@@ -40,6 +53,7 @@ const ViewAdd = (root) => {
     type: 'text',
     inputmode: 'decimal',
     placeholder: '0.00',
+    value: draft.amount ? draft.amount.toString() : '',
     on: { input: e => {
       const v = e.target.value.replace(/[^0-9.]/g,'');
       e.target.value = v;
@@ -114,7 +128,7 @@ const ViewAdd = (root) => {
 
   // notes + voice
   const notesIn = el('input', {
-    type: 'text', placeholder: 'NOTES (optional)', maxlength: 80,
+    type: 'text', placeholder: 'NOTES (optional)', maxlength: 80, value: draft.notes || '',
     on: { input: e => draft.notes = e.target.value }
   });
   const micBtn = el('button', {
@@ -145,10 +159,11 @@ const ViewAdd = (root) => {
     recRow.style.display = e.target.checked ? '' : 'none';
     if (e.target.checked && !draft.recurringRule) draft.recurringRule = { freq: 'monthly', startTs: draft.ts };
   } } });
+  recCheck.checked = !!draft.recurring;
   const recFreq = el('select', { on: { change: e => draft.recurringRule.freq = e.target.value } });
   ['daily','weekly','monthly'].forEach(f => recFreq.appendChild(el('option', { value: f }, f.toUpperCase())));
-  recFreq.value = 'monthly';
-  const recRow = el('div', { class: 'form-row', style: 'display:none' }, [
+  recFreq.value = draft.recurringRule?.freq || 'monthly';
+  const recRow = el('div', { class: 'form-row', style: draft.recurring ? '' : 'display:none' }, [
     el('label', {}, 'REPEAT EVERY'),
     recFreq
   ]);
@@ -173,7 +188,7 @@ const ViewAdd = (root) => {
   $$('button', typeSeg).forEach(b => b.addEventListener('click', updateSplitVisibility));
 
   // submit
-  const submit = el('button', { class: 'btn btn-primary', style: 'margin-top:10px;', on: { click: save } }, '[ SAVE ENTRY ]');
+  const submit = el('button', { class: 'btn btn-primary', style: 'margin-top:10px;', on: { click: save } }, isEdit ? '[ UPDATE ENTRY ]' : '[ SAVE ENTRY ]');
   root.appendChild(submit);
 
   async function save() {
@@ -183,7 +198,7 @@ const ViewAdd = (root) => {
     if (draft.type !== 'transfer' && !draft.categoryId) return toast('category required', 'err');
 
     const tx = {
-      id: Utils.uid(),
+      id: isEdit ? draft.id : Utils.uid(),
       type: draft.type,
       amount: draft.amount,
       accountId: draft.accountId,
@@ -193,12 +208,19 @@ const ViewAdd = (root) => {
       ts: draft.ts,
       recurring: draft.recurring,
       recurringRule: draft.recurring ? { ...draft.recurringRule, startTs: draft.ts } : null,
-      createdAt: Date.now(),
+      createdAt: isEdit ? draft.createdAt : Date.now(),
       updatedAt: Date.now()
     };
+    
     await DB.put('transactions', tx);
     await DB.recalcAccountBalance(tx.accountId);
     if (tx.toAccountId) await DB.recalcAccountBalance(tx.toAccountId);
+    
+    if (isEdit) {
+      if (parsed.accountId && parsed.accountId !== tx.accountId) await DB.recalcAccountBalance(parsed.accountId);
+      if (parsed.toAccountId && parsed.toAccountId !== tx.toAccountId) await DB.recalcAccountBalance(parsed.toAccountId);
+    }
+    
     await State.refreshAll();
     Notifications.checkBudgets();
     toast('saved');

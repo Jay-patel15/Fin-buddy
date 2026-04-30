@@ -11,7 +11,7 @@ const ViewSettings = (root) => {
 
   // --- ACCOUNT ---
   root.appendChild(el('div', { class: 'card' }, [
-    el('div', { class:'kv' }, [el('span', { class:'k' }, 'EMAIL'), el('span', { class:'v' }, s.user?.email || '—')]),
+    el('div', { class:'kv' }, [el('span', { class:'k' }, 'USERNAME'), el('span', { class:'v' }, s.user?.username || '—')]),
     el('div', { class:'kv' }, [el('span', { class:'k' }, 'USER ID'), el('span', { class:'v', style:'font-size:11px;' }, s.user?.id || '—')]),
     el('div', { style:'display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;' }, [
       el('button', { class:'mini red', on: { click: signOutFlow } }, 'SIGN OUT')
@@ -101,8 +101,7 @@ const ViewSettings = (root) => {
     el('button', { class:'btn btn-ghost', style:'margin-bottom:6px;', on: { click: () => Router.go('accounts')   } }, '[ MANAGE ACCOUNTS ]'),
     el('button', { class:'btn btn-ghost', style:'margin-bottom:6px;', on: { click: () => Router.go('categories') } }, '[ MANAGE CATEGORIES ]'),
     el('button', { class:'btn btn-ghost', style:'margin-bottom:6px;', on: { click: () => Router.go('budgets')    } }, '[ MANAGE BUDGETS ]'),
-    el('button', { class:'btn btn-ghost', style:'margin-bottom:6px;', on: { click: () => Router.go('monthly')    } }, '[ MONTHLY TRACKING ]'),
-    el('button', { class:'btn btn-blue',  style:'margin-bottom:6px;', on: { click: () => window.open('widget.html', '_blank') } }, '[ OPEN WIDGET VIEW ]')
+    el('button', { class:'btn btn-ghost', style:'margin-bottom:6px;', on: { click: () => Router.go('monthly')    } }, '[ MONTHLY TRACKING ]')
   ]));
 
   root.appendChild(el('div', { class:'muted center', style:'margin-top:14px;font-size:11px;letter-spacing:2px;' }, 'FINBUDDY · v2.0'));
@@ -144,7 +143,7 @@ const ViewSettings = (root) => {
           const id = upi.value.trim();
           const a = parseFloat(amt.value) || 0;
           if (!id || a <= 0) { toast('id + amount required','err'); return false; }
-          const payerName = s.user?.email?.split('@')[0] || 'me';
+          const payerName = s.user?.username || 'me';
           const link = `upi://pay?pa=${encodeURIComponent(id)}&pn=${encodeURIComponent(payerName)}&am=${a}&tn=${encodeURIComponent(note.value || 'settle')}&cu=INR`;
           out.innerHTML = '';
           out.appendChild(el('div', { style:'background:var(--offwhite);border:2px solid var(--black);padding:12px;font-size:11px;word-break:break-all;text-align:left;' }, link));

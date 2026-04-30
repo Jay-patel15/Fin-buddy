@@ -24,7 +24,7 @@ const SHARED_SECRET = 'CHANGE_ME_TO_A_LONG_RANDOM_STRING';
 const SHEET_ID = ''; // leave blank to auto-create a new sheet in your Drive
 
 const TABLES = {
-  users:             ['id','email','passwordHash','createdAt','updatedAt'],
+  users:             ['id','username','passwordHash','createdAt','updatedAt'],
   transactions:      ['id','userId','type','amount','accountId','toAccountId','categoryId','notes','ts','recurring','recurringRule','createdAt','updatedAt'],
   accounts:          ['id','userId','name','type','balance','color','createdAt','updatedAt'],
   categories:        ['id','userId','name','type','icon','color','updatedAt'],
@@ -42,8 +42,8 @@ function doPost(e) {
     if (body.secret !== SHARED_SECRET) return _json({ ok: false, error: 'unauthorized' });
 
     const { action, table, payload } = body;
-    if (action === 'ping')              return _json({ ok: true, pong: Date.now() });
-    if (action === 'findUserByEmail')   return _json({ ok: true, user: findUserByEmail(payload?.email) });
+    if (action === 'ping')                 return _json({ ok: true, pong: Date.now() });
+    if (action === 'findUserByUsername')   return _json({ ok: true, user: findUserByUsername(payload?.username) });
     if (action === 'pull')              return _json({ ok: true, data: pullForUser(payload?.userId) });
     if (action === 'upsert')            return _json({ ok: true, count: upsert(table, payload) });
     if (action === 'delete')            return _json({ ok: true, count: del(table, payload) });
@@ -104,11 +104,11 @@ function _readAll(name) {
   });
 }
 
-function findUserByEmail(email) {
-  if (!email) return null;
-  const want = String(email).toLowerCase().trim();
+function findUserByUsername(username) {
+  if (!username) return null;
+  const want = String(username).toLowerCase().trim();
   const rows = _readAll('users');
-  const r = rows.find(u => String(u.email || '').toLowerCase().trim() === want);
+  const r = rows.find(u => String(u.username || '').toLowerCase().trim() === want);
   return r || null;
 }
 

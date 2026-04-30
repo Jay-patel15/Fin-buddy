@@ -138,7 +138,7 @@ const ViewSplit = (root) => {
     const draft = {
       title: seed?.title || '',
       total: seed?.total || 0,
-      payerName: (s.user?.email?.split('@')[0]) || 'me',
+      payerName: s.user?.username || 'me',
       type: 'equal',
       participants: [{ name: '', phone: '', value: 0 }, { name: '', phone: '', value: 0 }],
       // If we already recorded the expense in Add, link to it instead of double-recording.

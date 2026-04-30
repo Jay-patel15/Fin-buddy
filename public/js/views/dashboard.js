@@ -159,7 +159,11 @@ const editTxModal = (t) => {
         if (Sheets.get().autoSync) Sheets.remove('transactions', t.id);
         Utils.toast('deleted');
       } },
-      { label: '[ CLOSE ]', kind: 'primary' }
+      { label: '[ EDIT ]', kind: 'primary', onClick: () => {
+        sessionStorage.setItem('edit_tx', JSON.stringify(t));
+        Router.go('add');
+      } },
+      { label: '[ CLOSE ]', kind: 'ghost' }
     ]
   });
 };
