@@ -1,175 +1,195 @@
-# RETRO.CASH
+# FINBUDDY
 
-> Mobile-first **personal finance + expense tracking** PWA with a **minimal retro UI**.
-> **100% offline.** All data lives on your device. Zero external/paid APIs.
-
----
-
-## What's in the box
-
-- **Auth** — local PIN (PBKDF2-hashed via Web Crypto) + optional biometric (Touch ID / Face / fingerprint via WebAuthn) + auto-lock on inactivity.
-- **Income / Expense / Transfer** — full CRUD, recurring entries with daily/weekly/monthly schedules, optional voice input.
-- **Multiple accounts** — Cash, Bank, UPI, Card, Wallets — manual balances, transfers between accounts.
-- **Categories + Budgets** — monthly limits per category, progress bars, threshold notifications (80% / 100%).
-- **Expense splitting** — equal / custom amount / percentage. Maintains a **per-contact ledger** (who owes whom). Send settle-up nudges via the **native share sheet** (Web Share API) with **WhatsApp deep link** fallback (`https://wa.me/<phone>?text=...`). **No Twilio**, no cost.
-- **Analytics** — pure-canvas charts: pie (category), bar (monthly), line (income vs expense over 6 months).
-- **Local notifications** — bill / split / budget alerts via the in-page Notification API. No server.
-- **Backup & restore** — export/import JSON, export CSV — all generated locally.
-- **UPI settle helper** — generate a `upi://pay?...` link for quick settlements; copy/share/open.
-- **Offline-first PWA** — service worker caches the shell; data lives in **IndexedDB**.
-
----
-
-## Tech stack
-
-| Layer        | Choice                                          |
-| ------------ | ----------------------------------------------- |
-| UI           | Vanilla JS + CSS (no framework, no build step)  |
-| State        | Tiny pub/sub store ([js/state.js](js/state.js)) |
-| Storage      | **IndexedDB** ([js/db.js](js/db.js))            |
-| Auth crypto  | Web Crypto (PBKDF2 + SHA-256)                   |
-| Biometric    | WebAuthn platform authenticator                 |
-| Charts       | Canvas 2D ([js/charts.js](js/charts.js))        |
-| Share        | Web Share API + `wa.me` / `sms:` / `mailto:`    |
-| Notifications| Notification API                                |
-| PWA          | Service worker + manifest                       |
-
-No npm install required. No transpiler. Open `index.html` in a modern browser.
-
----
-
-## Local schema (IndexedDB)
-
-| Store               | Key   | Notable fields                                                                       |
-| ------------------- | ----- | ------------------------------------------------------------------------------------ |
-| `meta`              | `key` | `user`: { id, username, salt, pinHash, hasBiometric, biometricCredId, autoLockMs }   |
-| `accounts`          | `id`  | name, type (cash/bank/upi/card/wallet), balance, color                               |
-| `categories`        | `id`  | name, type (expense/income), icon, color                                             |
-| `transactions`      | `id`  | type, amount, accountId, toAccountId, categoryId, notes, ts, recurring, recurringRule|
-| `splits`            | `id`  | title, totalAmount, payerName, splitType (equal/custom/percentage), createdAt        |
-| `splitParticipants` | `id`  | splitId, name, phone, amountOwed, status (pending/settled), settledAt                |
-| `budgets`           | `id`  | categoryId, monthlyLimit, period                                                     |
-| `notifications`     | `id`  | title, body, fireAt, status (pending/fired)                                          |
-
-Account balances are derived from transactions and recomputed on every change ([db.js → recalcAccountBalance](js/db.js)).
-
----
-
-## Run it
-
-### Option 1 — fastest (no server, file://)
-
-Some features (Service Worker, Web Share on iOS, full WebAuthn) require a secure origin. For day-to-day local use you can simply double-click `index.html`. The app will run; SW won't register but everything else works.
-
-### Option 2 — local server (recommended)
-
-Any static server. From this directory:
-
-```bash
-# Python 3
-python -m http.server 8080
-
-# or Node
-npx serve -l 8080
-```
-
-Then open `http://localhost:8080` on your laptop, or `http://<your-lan-ip>:8080` on your phone (same WiFi).
-
-For biometric auth on a real device you'll want HTTPS — easiest is to host on Netlify / Cloudflare Pages / GitHub Pages, or use a tunneling tool like [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) or `ngrok`.
-
-### Option 3 — install as an app
-
-Open the served URL on your phone → "Add to Home Screen" (iOS Safari) or "Install app" (Chrome/Edge on Android & desktop). It then runs full-screen like a native app.
-
----
-
-## First-run flow
-
-1. Open the app → "FIRST RUN" screen.
-2. Pick a username + 4–8-digit PIN. The PIN is hashed (PBKDF2, 150k iterations, random per-user salt) before being written to IndexedDB. Plaintext is never stored.
-3. Default accounts (Cash, Bank, UPI, Card) and category sets (Food, Transport, Bills, etc.) are seeded.
-4. Open *Settings* → *Biometric* → ENROLL to bind a WebAuthn platform credential to your vault, so you can unlock with Touch ID / Face / fingerprint.
-
-Auto-lock defaults to 1 minute of inactivity; configurable in Settings (off / 30s / 1m / 5m / 15m).
+> Multi-user **personal finance + expense splitting** web app with a brutalist retro UI.
+> Email/password login. Per-user data isolation. **Vercel** for the API. **Google Sheets** for storage. **WhatsApp deep-links** for sharing.
 
 ---
 
 ## Architecture
 
 ```
-index.html
-├── css/styles.css                    – retro theme tokens + components
-├── manifest.json + sw.js             – PWA shell, offline caching
-├── icons/                            – app icons
-└── js/
-    ├── utils.js          – DOM helpers, formatters, modal, toast
-    ├── crypto.js         – PBKDF2 / AES-GCM via Web Crypto
-    ├── db.js             – IndexedDB wrapper + balance recalc
-    ├── state.js          – tiny pub/sub store
-    ├── auth.js           – setup, unlock, biometric, auto-lock
-    ├── notifications.js  – local Notification API + recurring scheduler
-    ├── share.js          – Web Share API + wa.me deep link
-    ├── charts.js         – Canvas pie/bar/line
-    ├── export.js         – JSON / CSV export, JSON import
-    ├── router.js         – hash-based router
-    ├── app.js            – wiring/boot
-    └── views/
-        ├── dashboard.js
-        ├── transactions.js
-        ├── add.js
-        ├── split.js
-        ├── analytics.js
-        ├── accounts.js
-        ├── budgets.js
-        └── settings.js
+┌──────────────────────────────────────────────────────────────────────┐
+│ Browser (public/)                                                    │
+│   login.html / register.html ─┐                                      │
+│   index.html (auth-gated)     │   credentials                        │
+│   IndexedDB (per-user cache)  ▼                                      │
+└──────┬──────────────────────────────────────────────────────────────┘
+       │  fetch  /api/auth/{register,login,logout,me}        cookie  ▲
+       │  fetch  /api/data    { action, table, payload }              │
+       ▼                                                              │
+┌──────────────────────────────────────────────────────────────────────┐
+│ Vercel Serverless (api/)                                             │
+│   _lib/auth.js    JWT sign/verify, httpOnly cookie                   │
+│   _lib/sheets.js  client for Apps Script                             │
+│   auth/*          register / login / logout / me                     │
+│   data.js         requires JWT, stamps userId on every row           │
+└──────┬──────────────────────────────────────────────────────────────┘
+       │  POST  { secret, action, table, payload }
+       ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ Google Apps Script Web App (integrations/sheets-apps-script.gs)      │
+│   users  +  per-user-scoped data tabs                                │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-### Offline-first architecture
-
-- **Reads & writes** go to IndexedDB only. No fetch calls anywhere except for the shell (cached by SW).
-- **Recurring transactions** are stored locally with a `recurringRule` and spawned on a 30s tick by [notifications.js](js/notifications.js).
-- **Service worker** caches every JS/CSS/SVG file at install — the app loads with the radio off.
-
-### Sync
-
-There is **no cloud sync** — by design, per the spec. The export/import JSON flow ([js/export.js](js/export.js)) gives you full data portability if you want to move between devices.
-
-### Privacy / security
-
-- PIN: PBKDF2-SHA256, 150,000 iterations, 16-byte random salt.
-- Biometric: WebAuthn platform credential — verification is performed by the OS; the app holds only a credential ID, not the biometric data.
-- Optional AES-GCM payload encryption helpers are exposed in [crypto.js](js/crypto.js) for future opt-in encryption of high-sensitivity fields.
+The browser never sees the Apps Script URL or the shared secret. Per-user isolation is enforced server-side: the userId is read from the JWT and stamped onto every row going to the sheet, and reads are filtered by userId. The local IndexedDB is cleared whenever a different user signs in on the same browser.
 
 ---
 
-## Tested browser features
+## File layout
 
-| Feature              | Required? | Fallback                                    |
-| -------------------- | --------- | ------------------------------------------- |
-| IndexedDB            | yes       | (none — required)                           |
-| Web Crypto           | yes       | (none — required)                           |
-| WebAuthn (biometric) | optional  | PIN-only login                              |
-| Web Share API        | optional  | WhatsApp deep link via `wa.me` opens new tab|
-| Notification API     | optional  | falls back to in-app toast                  |
-| SpeechRecognition    | optional  | mic button hidden when unsupported          |
-| Service Worker       | optional  | app still works, just not preinstalled offline |
+```
+public/                              ← static frontend (Vercel serves this)
+├── index.html                       — main app (auth-gated)
+├── login.html, register.html        — auth pages
+├── widget.html                      — compact balance/recent widget
+├── manifest.json, sw.js
+├── css/styles.css
+├── icons/
+└── js/
+    ├── utils.js, db.js, state.js
+    ├── auth-client.js               — talks to /api/auth/*
+    ├── api/sheets.js                — talks to /api/data
+    ├── notifications.js, share.js, charts.js, export.js, whatsapp.js
+    ├── router.js, app.js
+    └── views/                       — dashboard, transactions, add, split,
+                                       analytics, accounts, budgets, categories,
+                                       monthly, settings
 
-Known limitations:
+api/                                 ← Vercel serverless backend
+├── _lib/
+│   ├── auth.js                      — JWT + cookie helpers
+│   └── sheets.js                    — Apps Script client
+├── auth/
+│   ├── register.js                  — POST  email + password
+│   ├── login.js                     — POST  → sets httpOnly cookie
+│   ├── logout.js                    — POST  → clears cookie
+│   └── me.js                        — GET   → current user
+└── data.js                          — POST  authenticated CRUD proxy
 
-- iOS Web Share supports text-only out of the box; that's all this app sends.
-- iOS PWA notifications require iOS 16.4+ and the app installed to the home screen.
-- File downloads (export) work everywhere modern; on iOS they prompt "Download" and land in Files.
+integrations/
+└── sheets-apps-script.gs            — Paste-into-Apps-Script storage layer
+
+.env / .env.example                  — local dev secrets (gitignored)
+.gitignore
+package.json                         — bcryptjs + jsonwebtoken
+vercel.json                          — clean URLs, headers, public/ root
+```
 
 ---
 
-## Performance
+## One-time setup (≈10 minutes)
 
-- **No external network** at runtime once cached → instant cold start.
-- IndexedDB reads are batched in [State.refreshAll](js/state.js); the largest hot path (add transaction) recomputes only the affected account balance.
-- Charts are pure canvas — sub-millisecond paint on a 6-month dataset.
+### 1. Apps Script (storage)
+
+1. Open <https://script.google.com> → **+ New project**.
+2. Replace the default code with [integrations/sheets-apps-script.gs](integrations/sheets-apps-script.gs).
+3. Set `SHARED_SECRET` to a long random string (you'll reuse it). Save.
+4. **Deploy → New deployment → Web app**:
+   - Execute as: **Me**
+   - Who has access: **Anyone**
+5. Copy the **Web app URL**.
+
+### 2. .env (for local dev)
+
+```bash
+cp .env.example .env
+# then fill in:
+#   APPS_SCRIPT_URL     = the Web app URL from step 1
+#   APPS_SCRIPT_SECRET  = the same SHARED_SECRET you set in the script
+#   JWT_SECRET          = node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
+
+`.env` is gitignored — never commit it.
+
+### 3. Install + run locally
+
+```bash
+npm install
+npm install -g vercel        # if not installed
+vercel link                  # links this folder to a Vercel project (one-time)
+vercel dev                   # runs frontend + serverless on localhost
+```
+
+Open <http://localhost:3000>, register an account, sign in. CRUD goes through the local `vercel dev` server and on into your Apps Script.
+
+### 4. Deploy to production
+
+```bash
+vercel --prod
+```
+
+In the Vercel dashboard → **Project → Settings → Environment Variables**, add (for **Production**):
+
+| Name | Value |
+|------|-------|
+| `APPS_SCRIPT_URL` | the Web app URL from step 1 |
+| `APPS_SCRIPT_SECRET` | the same `SHARED_SECRET` |
+| `JWT_SECRET` | a different long random string |
+
+Then redeploy (env vars are picked up at build time).
+
+---
+
+## How auth works
+
+- `POST /api/auth/register` `{ email, password }` — bcrypt-hashes, writes to `users` tab.
+- `POST /api/auth/login` `{ email, password }` — bcrypt-verifies, signs JWT, sets `fb_session` httpOnly + Secure + SameSite=Lax cookie (7 days by default).
+- `GET  /api/auth/me` — reads cookie, returns `{ id, email }`.
+- `POST /api/auth/logout` — clears the cookie.
+- `POST /api/data` — every request requires the cookie; the server reads `userId` from the verified JWT and uses it to scope all CRUD.
+
+Passwords: `bcryptjs` with cost 10. JWTs: HS256 signed with `JWT_SECRET`. Cookies: `HttpOnly`, `SameSite=Lax`, `Secure` in production.
+
+---
+
+## How data isolation works
+
+Every user-scoped tab (`transactions`, `accounts`, `categories`, `budgets`, `splits`, `splitParticipants`) has a `userId` column. The server:
+
+- **Writes**: stamps `userId = session.id` onto every row before forwarding to Apps Script. The Apps Script `upsert` rejects writes that would overwrite another user's row (ownership guard).
+- **Reads**: `pull` returns only rows whose `userId` matches the session.
+- **Deletes**: only delete rows whose `userId` matches the session.
+- **Replace** (used by "PUSH ALL → SHEET"): clears + rewrites only this user's rows; other users' rows are untouched.
+
+The browser **cannot** spoof a userId — the value comes from the verified JWT, not from request body.
+
+---
+
+## WhatsApp — deep links only
+
+```js
+const message = "You owe ₹500 for dinner";
+const url = `https://wa.me/919876543210?text=${encodeURIComponent(message)}`;
+window.open(url, "_blank");
+```
+
+Tap → WhatsApp opens with prefilled text → user taps Send. No backend, no API keys, no rate limits, no cost. Implemented in [public/js/whatsapp.js](public/js/whatsapp.js); the Monthly view ships with a `✉ WHATSAPP` button that preloads the month's summary.
+
+---
+
+## Development tips
+
+- **Run locally**: `vercel dev` (it reads `.env`).
+- **Inspect the cookie**: DevTools → Application → Cookies → look for `fb_session`.
+- **Reset a session**: clear `fb_session` cookie or call `POST /api/auth/logout`.
+- **Reset all local data**: DevTools → Application → IndexedDB → delete `retro_cash_db`.
+- **Rotate the JWT secret**: every existing session is invalidated immediately (everyone has to log back in).
+- **Backup**: [export.js](public/js/export.js) still produces JSON / CSV downloads from the local cache.
+
+---
+
+## Production checklist
+
+- [ ] `SHARED_SECRET` in Apps Script ≠ the default placeholder
+- [ ] `JWT_SECRET` in Vercel ≠ a guessable value (use 64+ random bytes)
+- [ ] `APPS_SCRIPT_URL` and `APPS_SCRIPT_SECRET` set in Vercel for **Production**
+- [ ] Apps Script deployed as **Web app**, **Anyone** access (the secret is the lock)
+- [ ] First registered user can log in, add a transaction, and see it in the sheet under their `userId`
+- [ ] Second registered user cannot see the first user's rows
 
 ---
 
 ## License
 
-MIT — do whatever you want; this is your money.
+MIT.

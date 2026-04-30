@@ -1,0 +1,17 @@
+{
+  "name": "finbuddy",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Multi-user personal finance + expense splitting on Vercel + Google Sheets",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

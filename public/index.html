@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#FFD400" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>FINBUDDY</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- MAIN APP (revealed by app.js after /api/auth/me succeeds) -->
+  <section id="app-screen" class="screen hidden">
+
+    <!-- DESKTOP SIDEBAR (>=1024px) -->
+    <aside class="sidebar">
+      <div class="brand">FIN<span class="dot">·</span>BUDDY</div>
+      <div class="net" id="sidebar-net"><span class="lab">NET BALANCE</span><span id="sidebar-net-val">₹0</span></div>
+      <nav class="side-nav">
+        <button class="item" data-route="dashboard"><span class="ico">◉</span> HOME</button>
+        <button class="item" data-route="transactions"><span class="ico">≡</span> LOG</button>
+        <button class="item fab-side" data-route="add"><span class="ico">+</span> NEW ENTRY</button>
+        <button class="item" data-route="monthly"><span class="ico">▦</span> MONTHLY</button>
+        <button class="item" data-route="analytics"><span class="ico">▤</span> STATS</button>
+        <button class="item" data-route="split"><span class="ico">⌥</span> SPLIT</button>
+        <button class="item" data-route="accounts"><span class="ico">⊞</span> ACCOUNTS</button>
+        <button class="item" data-route="categories"><span class="ico">✱</span> CATEGORIES</button>
+        <button class="item" data-route="budgets"><span class="ico">▣</span> BUDGETS</button>
+        <button class="item" data-route="settings"><span class="ico">⚙</span> SETTINGS</button>
+      </nav>
+      <div class="footer" id="sidebar-user">FINBUDDY · v2.0</div>
+    </aside>
+
+    <header class="topbar">
+      <div class="brand">FIN<span class="dot">·</span>BUDDY</div>
+      <div class="topbar-actions">
+        <span id="net-balance" class="net">₹0</span>
+        <button id="export-btn"   class="icon-btn has-text" title="export">⤓ EXPORT</button>
+        <button id="settings-btn" class="icon-btn" title="settings">⚙</button>
+        <button id="logout-btn"   class="icon-btn" title="log out">⏻</button>
+      </div>
+    </header>
+
+    <main id="view-root" class="view-root"></main>
+
+    <nav class="tabbar">
+      <button class="tab" data-route="dashboard"><span>◉</span><label>HOME</label></button>
+      <button class="tab" data-route="transactions"><span>≡</span><label>LOG</label></button>
+      <button class="tab fab-tab" data-route="add"><span class="fab">+</span></button>
+      <button class="tab" data-route="monthly"><span>▦</span><label>MONTH</label></button>
+      <button class="tab" data-route="analytics"><span>▤</span><label>STATS</label></button>
+    </nav>
+  </section>
+
+  <!-- MODAL / TOAST ROOTS -->
+  <div id="modal-root"></div>
+  <div id="toast-root"></div>
+
+  <!-- ORDER MATTERS -->
+  <script src="js/utils.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/auth-client.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/share.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/sheets.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/views/dashboard.js"></script>
+  <script src="js/views/transactions.js"></script>
+  <script src="js/views/add.js"></script>
+  <script src="js/views/split.js"></script>
+  <script src="js/views/analytics.js"></script>
+  <script src="js/views/accounts.js"></script>
+  <script src="js/views/budgets.js"></script>
+  <script src="js/views/categories.js"></script>
+  <script src="js/views/monthly.js"></script>
+  <script src="js/views/settings.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

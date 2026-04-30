@@ -193,7 +193,8 @@ const ViewAdd = (root) => {
       ts: draft.ts,
       recurring: draft.recurring,
       recurringRule: draft.recurring ? { ...draft.recurringRule, startTs: draft.ts } : null,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     };
     await DB.put('transactions', tx);
     await DB.recalcAccountBalance(tx.accountId);
@@ -201,6 +202,18 @@ const ViewAdd = (root) => {
     await State.refreshAll();
     Notifications.checkBudgets();
     toast('saved');
+
+    // Push to Google Sheets (no-op when sync disabled; queues on failure)
+    if (Sheets.get().autoSync) {
+      Sheets.upsert('transactions', tx);
+      // balances changed locally; mirror them too so totals stay in sync
+      const acc = await DB.get('accounts', tx.accountId);
+      if (acc) Sheets.upsert('accounts', { ...acc, updatedAt: Date.now() });
+      if (tx.toAccountId) {
+        const acc2 = await DB.get('accounts', tx.toAccountId);
+        if (acc2) Sheets.upsert('accounts', { ...acc2, updatedAt: Date.now() });
+      }
+    }
 
     if (draft.splitAfter && draft.type === 'expense') {
       // Stash a draft for the split view to pick up.

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#FFD400" />
+  <title>FINBUDDY · REGISTER</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <section class="screen lock">
+    <div class="boot">
+      <div class="logo">
+        <span class="glitch" data-text="FINBUDDY">FINBUDDY</span>
+        <div class="tagline">// create your ledger</div>
+      </div>
+
+      <form id="reg-form" autocomplete="on" novalidate>
+        <h2>&gt; REGISTER</h2>
+        <p class="muted">Each account has its own private ledger.</p>
+        <input id="email"    type="email"    name="email"    placeholder="EMAIL"            autocomplete="email"        required />
+        <input id="password" type="password" name="password" placeholder="PASSWORD (8+)"    autocomplete="new-password" required minlength="8" />
+        <input id="confirm"  type="password" name="confirm"  placeholder="CONFIRM PASSWORD" autocomplete="new-password" required minlength="8" />
+        <button id="submit" class="btn btn-primary" type="submit">[ CREATE ACCOUNT ]</button>
+        <div id="error" class="error"></div>
+      </form>
+
+      <div class="muted center" style="margin-top:14px;font-size:11px;letter-spacing:2px;">
+        ALREADY REGISTERED?
+        <a href="login.html" class="link" style="margin-left:6px;">[ SIGN IN → ]</a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+  (async () => {
+    try {
+      const r = await fetch('/api/auth/me', { credentials: 'include' });
+      if (r.ok) { location.href = '/'; return; }
+    } catch (_) { /* show form */ }
+
+    const form    = document.getElementById('reg-form');
+    const errEl   = document.getElementById('error');
+    const submit  = document.getElementById('submit');
+    const emailIn = document.getElementById('email');
+    const passIn  = document.getElementById('password');
+    const confIn  = document.getElementById('confirm');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errEl.textContent = '';
+      if (passIn.value !== confIn.value) {
+        errEl.textContent = '> passwords do not match';
+        return;
+      }
+      submit.disabled = true;
+      submit.textContent = '[ CREATING... ]';
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailIn.value.trim(), password: passIn.value })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) throw new Error(data.error || 'register failed');
+
+        // Auto-login after successful register so the user lands straight in the app.
+        const r2 = await fetch('/api/auth/login', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailIn.value.trim(), password: passIn.value })
+        });
+        if (!r2.ok) {
+          location.href = 'login.html';
+          return;
+        }
+        location.href = '/';
+      } catch (err) {
+        errEl.textContent = '> ' + err.message;
+        submit.disabled = false;
+        submit.textContent = '[ CREATE ACCOUNT ]';
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

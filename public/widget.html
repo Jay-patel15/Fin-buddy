@@ -141,13 +141,14 @@
     const root = document.getElementById('widget-root');
     const { el, fmtMoney, fmtDate, sumMoney, startOfMonth, endOfMonth } = Utils;
 
-    // If the user hasn't set up the app yet, show a setup prompt.
-    const user = await DB.getMeta('user');
-    if (!user) {
+    // The widget reads the local cache only — for live data the user
+    // should sign in via the main app.
+    const userId = await DB.getMeta('currentUserId');
+    if (!userId) {
       root.innerHTML = '';
       root.appendChild(el('div', { class: 'w-locked' }, [
-        el('h2', {}, 'NO VAULT'),
-        el('div', { class: 'muted', style: 'font-size:12px;' }, 'Set up FinBuddy first.'),
+        el('h2', {}, 'SIGN IN FIRST'),
+        el('div', { class: 'muted', style: 'font-size:12px;' }, 'Open FinBuddy and sign in to populate this widget.'),
         el('a', { href: 'index.html' }, 'OPEN APP')
       ]));
       return;

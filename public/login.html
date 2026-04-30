@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#FFD400" />
+  <title>FINBUDDY · LOGIN</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <section class="screen lock">
+    <div class="boot">
+      <div class="logo">
+        <span class="glitch" data-text="FINBUDDY">FINBUDDY</span>
+        <div class="tagline">// sign in to your ledger</div>
+      </div>
+
+      <form id="login-form" autocomplete="on" novalidate>
+        <h2>&gt; LOGIN</h2>
+        <input id="email"    type="email"    name="email"    placeholder="EMAIL"    autocomplete="email"            required />
+        <input id="password" type="password" name="password" placeholder="PASSWORD" autocomplete="current-password" required minlength="8" />
+        <button id="submit" class="btn btn-primary" type="submit">[ SIGN IN ]</button>
+        <div id="error" class="error"></div>
+      </form>
+
+      <div class="muted center" style="margin-top:14px;font-size:11px;letter-spacing:2px;">
+        NO ACCOUNT?
+        <a href="register.html" class="link" style="margin-left:6px;">[ CREATE ONE → ]</a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+  (async () => {
+    // If we already have a session, skip the form.
+    try {
+      const r = await fetch('/api/auth/me', { credentials: 'include' });
+      if (r.ok) { location.href = '/'; return; }
+    } catch (_) { /* offline or no backend; show form */ }
+
+    const form    = document.getElementById('login-form');
+    const errEl   = document.getElementById('error');
+    const submit  = document.getElementById('submit');
+    const emailIn = document.getElementById('email');
+    const passIn  = document.getElementById('password');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errEl.textContent = '';
+      submit.disabled = true;
+      submit.textContent = '[ SIGNING IN... ]';
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailIn.value.trim(), password: passIn.value })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) throw new Error(data.error || 'login failed');
+        location.href = '/';
+      } catch (err) {
+        errEl.textContent = '> ' + err.message;
+        submit.disabled = false;
+        submit.textContent = '[ SIGN IN ]';
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

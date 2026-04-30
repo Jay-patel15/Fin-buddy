@@ -103,7 +103,10 @@ const ViewMonthly = (root) => {
     // Transactions list
     body.appendChild(el('div', { class: 'section-h' }, [
       el('div', { class: 't' }, `TRANSACTIONS · ${txs.length}`),
-      el('div', { class: 'a', on: { click: () => ExportData.exportMonthCSV(active) } }, '⤓ CSV')
+      el('div', { style: 'display:flex;gap:6px;' }, [
+        el('div', { class: 'a', on: { click: () => ExportData.exportMonthCSV(active) } }, '⤓ CSV'),
+        el('div', { class: 'a', style: 'background:var(--green);', on: { click: () => Whatsapp.send('', Whatsapp.monthlySummary(active)) } }, '✉ WHATSAPP')
+      ])
     ]));
     if (!txs.length) {
       body.appendChild(el('div', { class: 'card empty' }, 'no entries this month'));

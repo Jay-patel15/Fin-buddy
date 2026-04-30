@@ -14,8 +14,10 @@ const ViewDashboard = (root) => {
   const expense  = Utils.sumMoney(monthTx.filter(t => t.type === 'expense'));
   const net      = Utils.sumMoney(s.accounts, (a) => a.balance || 0);
 
-  // Update topbar net
+  // Update topbar + sidebar net displays
   Utils.$('#net-balance').textContent = fmtMoney(net);
+  const sidebarNet = Utils.$('#sidebar-net-val');
+  if (sidebarNet) sidebarNet.textContent = fmtMoney(net);
 
   // ---- HERO ----
   root.appendChild(el('div', { class: 'balance-hero' }, [
@@ -154,6 +156,7 @@ const editTxModal = (t) => {
         await DB.recalcAccountBalance(t.accountId);
         if (t.toAccountId) await DB.recalcAccountBalance(t.toAccountId);
         await State.refreshAll();
+        if (Sheets.get().autoSync) Sheets.remove('transactions', t.id);
         Utils.toast('deleted');
       } },
       { label: '[ CLOSE ]', kind: 'primary' }

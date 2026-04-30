@@ -24,11 +24,17 @@ const Router = (() => {
     Utils.$$('.tabbar .tab').forEach(t => {
       t.classList.toggle('active', t.dataset.route === route);
     });
+    Utils.$$('.side-nav .item').forEach(t => {
+      t.classList.toggle('active', t.dataset.route === route);
+    });
     root.scrollTop = 0;
   };
 
   const init = () => {
     Utils.$$('.tabbar .tab').forEach(t => {
+      t.addEventListener('click', () => go(t.dataset.route));
+    });
+    Utils.$$('.side-nav .item').forEach(t => {
       t.addEventListener('click', () => go(t.dataset.route));
     });
     window.addEventListener('hashchange', () => {
