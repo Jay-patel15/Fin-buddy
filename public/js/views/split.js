@@ -62,6 +62,9 @@ const ViewSplit = (root) => {
   let mode = 'list';
   const setMode = (m) => {
     mode = m;
+    // Tab change away from NEW means the user dismissed the auto-fill —
+    // drop the seed so the next visit doesn't re-open NEW unexpectedly.
+    if (m !== 'new') sessionStorage.removeItem('split_seed');
     $$('button', tabs).forEach(b => b.classList.toggle('active', b.dataset.m === m));
     body.innerHTML = '';
     if (m === 'list') renderList();
@@ -128,11 +131,14 @@ const ViewSplit = (root) => {
 
   // ============================================================ NEW
   const renderNew = () => {
-    // Optional seed from Add view ("split this expense" toggle)
+    // Optional seed from Add view ("split this expense" toggle).
+    // Don't consume it here — Router.go re-renders ViewSplit several times,
+    // and consuming on first read would make subsequent renders bounce back
+    // to LIST. The seed is removed by setMode() on tab change OR by save().
     let seed = null;
     try {
       const raw = sessionStorage.getItem('split_seed');
-      if (raw) { seed = JSON.parse(raw); sessionStorage.removeItem('split_seed'); }
+      if (raw) seed = JSON.parse(raw);
     } catch (_) {}
 
     const draft = {
@@ -330,6 +336,9 @@ const ViewSplit = (root) => {
           createdAt: Date.now()
         });
       }
+      // Consume the auto-fill seed now that the split is saved, so the next
+      // time the user lands on Split they get the LIST tab as normal.
+      sessionStorage.removeItem('split_seed');
       await State.refreshAll();
       toast('split created');
       setMode('list');
